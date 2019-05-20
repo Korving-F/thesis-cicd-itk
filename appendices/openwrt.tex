@@ -1,0 +1,46 @@
+\begin{lstlisting}[frame=single, basicstyle=\tiny]
+---
+
+variables:
+  IMAGE_PATH: 'bin/targets/ramips/mt76x8/openwrt-ramips-mt76x8-gl-mt300n-v2-squashfs-sysupgrade.bin'
+  IMAGE_PATH_GLOB: 'bin/targets/*/*/*.bin'
+
+stages:
+  - init
+  - build
+
+install_dependencies:
+  stage: init
+  script:
+    - sudo apt install -y subversion g++ zlib1g-dev build-essential git python time
+    - sudo apt install -y libncurses5-dev gawk gettext unzip file libssl-dev wget
+    - sudo apt install -y libelf-dev
+  tags:
+    - openwrt
+
+build_image:
+  stage: build
+  script:
+    - git clone https://git.openwrt.org/openwrt/openwrt.git
+    - cp .config openwrt/
+    - cd openwrt
+    - echo "=================================================="
+    - echo "==== Apply patch / run builder scripts here  ====="
+    - echo "=================================================="
+    - ./scripts/feeds update -a
+    - ./scripts/feeds install -a
+    - ./scripts/diffconfig.sh > configdiff
+    - cp configdiff .config
+    - make defconfig;make oldconfig
+    - make download
+    - make -j128
+    - cp $IMAGE_PATH .
+  artifacts:
+    paths:
+      - "*.bin"
+    expire_in: 1 year
+  when: manual
+  tags:
+    - openwrt
+
+\end{lstlisting}

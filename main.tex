@@ -1,0 +1,170 @@
+%
+% TTÜ Style Thesis template for LaTeX
+%
+% Public Version 1.1
+% 2019 Adjusted by Frank Korving for his TTÜ Bachelor Thesis
+% With Contributions from Tarvo Reinpalu, Priit Ruberg and Sander Arnus
+%
+% Public version 1.0
+% 2010 - 2013 Thijs Nugteren and Joos Buijs for TU/e Master Thesis
+%
+% THIS IS THE MAIN FILE (i.e. compile this file, compiling the others directly won't work)
+%
+\documentclass[12pt, a4paper]{report}
+
+% all the other includes etc. are done in the thesis.sty file.
+\usepackage{thesis}
+
+%
+% These commands need to be defined in order to produce a correct and personalized document
+%
+\newcommand{\doctitle}{Choosing and Implementing Continuous Integration: the Case of Certidude}
+\newcommand{\docsubtitle}{Diploma Thesis}
+
+\newcommand{\me}{Frank Korving}
+\newcommand{\studentcode}{176209IDCR}
+\newcommand{\university}{TALLINN UNIVERSITY OF TECHNOLOGY}
+\newcommand{\school}{School of Information Technology}
+\newcommand{\department}{Information Technology College}
+\newcommand{\supervisor}{Lauri Võsandi}
+\newcommand{\supervisortitle}{MSc}
+\newcommand{\cosupervisor}{Kaido Kikkas}
+\newcommand{\cosupervisortitle}{PhD}
+\newcommand{\keywords}{DevOps, CI/CD, Continuous Integration, Docker, Jenkins, GitlabCI, CircleCI, TravisCI, TeamCity}
+\newcommand{\version}{0.1 version}
+\newcommand{\monthYear}{April 2019}
+\newcommand{\Year}{2019}
+\newcommand{\signatureDate}{May 20, 2019}
+
+\author{\me}
+
+%
+% PDF settings
+%
+\hypersetup
+{
+    pdfauthor={\me},
+    pdfsubject={\doctitle},
+    pdfkeywords={\keywords}
+}
+
+\begin{document}
+\pagenumbering{roman}
+\include{titlepage}
+
+\normalsize
+
+\chapter*{\centerline{Author's declaration of originality}}\label{chapter:declaration}
+\input{chapters/authordeclaration.tex}
+
+\chapter*{\centerline{Annotatsioon}}\label{chapter:abstract-eesti}
+\input{chapters/abstract-eesti.tex}
+\pagebreak
+
+\chapter*{\centerline{Abstract}}\label{chapter:abstract}
+\input{chapters/abstract}
+\pagebreak
+
+\chapter*{\centerline{List of abbreviations and terms}}\label{chapter:terms}
+\input{chapters/terms_abbreviations.tex}
+\pagebreak
+
+\phantomsection
+\setcounter{tocdepth}{2}    % Sets maximum depth of Table Of Contents
+\renewcommand{\contentsname}{Table of Contents}
+\tableofcontents
+
+\clearpage
+\phantomsection
+\setcounter{figure}{0}
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
+
+\chapter{Introduction}\label{chapter:introduction}
+\onehalfspacing
+\setcounter{page}{0}
+\pagenumbering{arabic}   %from here on, start the 'real' page numbering, from 1, with normal digits
+\input{chapters/introduction}
+
+\chapter{Technologies and Concepts}\label{chapter:concepts}
+\input{chapters/concepts.tex}
+
+\chapter{Analysis}\label{chapter:analysis}
+\input{chapters/analysis.tex}
+
+\chapter{Implementation}\label{chapter:implementation}
+\input{chapters/implementation.tex}
+
+\chapter{Summary}\label{chapter:summary} 
+\input{chapters/summary.tex}
+
+\pagebreak
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliography}
+\printbibliography
+
+\pagebreak
+
+\phantomsection
+\appendix
+\addcontentsline{toc}{chapter}{Appendices}
+\chapter*{Appendices}
+\renewcommand{\thechapter}{\arabic{chapter}}
+
+\addcontentsline{toc}{chapter}{Appendix 1 - Test Pipeline - Travis CI}\label{chapter:appendix-travis}
+{\let\clearpage\relax\chapter*{Appendix 1 - Test Pipeline - Travis CI}}
+\input{appendices/sample-pipelines-travis.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 2 - Test Pipeline - Jenkins}\label{chapter:appendix-jenkins}
+\chapter*{Appendix 2 - Test Pipeline - Jenkins}
+\input{appendices/sample-pipelines-jenkins.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 3 - Test Pipeline - Gitlab CI}\label{chapter:appendix-gitlab}
+\chapter*{Appendix 3 - Test Pipeline - Gitlab CI}
+\input{appendices/sample-pipelines-gitlab.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 4 - Test Pipeline - TeamCity}\label{chapter:appendix-tc}
+\chapter*{Appendix 4 - Test Pipeline - TeamCity}
+\input{appendices/sample-pipelines-tc.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 5 - Test Pipeline - Circle CI}\label{chapter:appendix-circleci}
+\chapter*{Appendix 5 - Test Pipeline - Circle CI}
+\input{appendices/sample-pipelines-circle.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 6 - Certidude Pipeline}\label{chapter:appendix-certidude-pipeline}
+\chapter*{Appendix 6 - Certidude Pipeline}
+\input{appendices/certidude-basic-pipeline.tex}
+
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 7 - SonarScanner Configuration}\label{chapter:appendix-sonar}
+{\let\clearpage\relax\chapter*{Appendix 7 - SonarScanner Configuration}}
+\input{appendices/sonar-config.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 8 - VirtualBox Executor}\label{chapter:appendix-vbox}
+\chapter*{Appendix 8 - VirtualBox Executor}
+\input{appendices/virtualbox.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Appendix 9 - OpenWrt Image Creation Pipeline}\label{chapter:appendix-openwrt}
+\chapter*{Appendix 9 - OpenWrt Image Creation Pipeline}
+\input{appendices/openwrt.tex}
+
+\end{document}

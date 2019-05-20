@@ -1,0 +1,21 @@
+Certidude is an Estonia-based, open source project aiming to make VPN certificate 
+management as easy as possible for everyday system administrators. Like many other software projects,
+Certidude has a test-suite that should increase confidence in code quality and ensure the presence of desired
+functionality when deployed. Certidude already tries to make use of development practices like 
+Continuous Integration and Delivery to automate integration tests and other development best practices, 
+but limitations of the current tool have dulled their usefulness for Certidude and created the need 
+for a replacement.
+
+During this research common CI/CD server components and integrations were explored and discussed,
+a test application was developed and
+a comparative analysis was performed between five popular CI/CD server implementations based on that
+application. Gitlab CI revealed itself to be the best fit according to defined requirements so a replacement
+pipeline for Certidude was implemented in that tool. 
+
+The current test-suite of Certidude still needs a lot of work, so in addition a list of "\textit{future work}"
+suggestions was compiled which can be used as a development road map. Additionally this thesis can be considered
+a short guide into the world of CI/CD. 
+
+See Chapters \ref{chapter:introduction} and \ref{chapter:concepts} for an overview of Continuous Integration and related concepts, Chapter \ref{chapter:analysis} for the comparative analysis and Chapter \ref{chapter:implementation} for the implementation. The developed test application and pipeline files can be found here: \url{https://github.com/Korving-F/thesis-cicd-examples}
+
+The thesis is in English and contains 34 pages of text, 5 chapters, 20 figures, 2 tables.

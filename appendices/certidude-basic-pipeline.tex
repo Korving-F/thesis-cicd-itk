@@ -1,0 +1,90 @@
+\begin{lstlisting}[frame=single, basicstyle=\tiny]
+---
+
+variables:
+  SONARQUBE: 172.20.8.193:5001/certidude/certidude:sonarqube
+
+stages:
+  - build
+  - test
+  - scan
+
+.python-install-dependencies: &install-deps |-
+  sudo apt-get update -qy
+  sudo apt-get install -y python3-dev python3-pip
+  sudo pip3 install pylint
+  sudo pip3 install pytest pytest-cov
+  sudo pip3 install bandit
+
+pylint:
+  stage: test
+  allow_failure: true
+  before_script:
+    - *install-deps
+  script:
+    - pylint --output-format=json certidude/ > pylint-results.json || true
+  artifacts:
+    paths:
+      - "pylint-results.json"
+    expire_in: 2 years
+  tags:
+    - main
+
+pytest:
+  stage: test
+  allow_failure: true
+  before_script:
+    - *install-deps
+  script:
+    - sudo -H pip3 install -r requirements.txt
+    - pytest --junitxml=test_results.xml --cov-report xml --cov-report term --cov-branch --cov=certidude/ tests/ || true
+  artifacts:
+    paths:
+      - "test_results.xml"
+      - "coverage.xml"
+    expire_in: 2 years
+  tags:
+    - main
+
+bandit:
+  stage: test
+  allow_failure: true
+  before_script:
+    - *install-deps
+  script:
+    - bandit --format json --output bandit-report.json --recursive certidude/ || true
+    - bandit -r certidude/ --format xml --output bandit_results.xml || true
+  artifacts:
+    paths:
+      - bandit_results.xml
+      - bandit-report.json
+    expire_in: 2 years
+  tags:
+    - main
+
+sonar_docker:
+  stage: build
+  script:
+    - docker login -u $REG_UNAME -p $REG_PASSWORD $REG_TARGET
+    - docker pull $SONARQUBE
+    - docker run -d -p 9000:9000 $SONARQUBE || true
+  tags:
+    - sonar
+
+sonar_scanner:
+  stage: scan
+  allow_failure: true
+  script:
+    - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-linux.zip
+    - mkdir sonar-scanner
+    - unzip sonar-scanner-cli-*-linux.zip -d sonar-scanner
+    - mv sonar-scanner/*/* sonar-scanner/
+    - export PATH=$(pwd)/sonar-scanner/bin:$PATH
+    - sonar-scanner
+  dependencies:
+    - bandit
+    - pytest
+    - pylint
+  tags:
+    - sonar
+\end{lstlisting}

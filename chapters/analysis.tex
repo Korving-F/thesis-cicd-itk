@@ -1,0 +1,308 @@
+This chapter will describe multiple CI/CD server implementations and contains an analysis of their relevance to Certidude and adherence to the requirements that are defined in the first section of this chapter. The chapter ends with a short review, discussion and conclusion.
+
+The analysis of the tools also required a hands-on approach to determine which would be best suited. A dummy application was developed, based on Python and the Flask web framework. Two almost-identical test suites were created to test this application: one based on Flask fixtures, the other using Docker and raw HTTP (Hyper Text Transfer Protocol) requests. It was pushed to two separate version control systems: a public Github repository\cite{korving-example} and a privately hosted Gitlab repository. This was done since some CI/CD solutions are public cloud based, while others are privately hosted. The public repository contains the created pipeline definition files for all solutions  which can additionally be found in Appendices \hyperref[chapter:appendix-travis]{1}, \hyperref[chapter:appendix-jenkins]{2}, \hyperref[chapter:appendix-gitlab]{3}, \hyperref[chapter:appendix-tc]{4} and \hyperref[chapter:appendix-circleci]{5}.
+
+Unfortunately there are too many CI/CD solutions available to make testing them all a feasible task. A selection was made based on variation in properties like popularity, applicability, licensing, community vs. proprietary support and whether the service is hosted in the cloud or on premises. This selection should reflect the CI/CD landscape in general, but left out popular solutions like: Bitrise (for mobile applications), GoCD, Bamboo/Bitbucket Pipelines, Codeship, Azure DevOps (formerly known as VSTS) and Zuul-CI.\cite{bitrise, gocd, vsts, bamboo, zuul}
+
+\pagebreak
+
+\section{Solution Requirements} \label{analysis:requirements}
+Table \ref{table_cicd_requirements} contains the requirements needed from the tools under test. Each requirement is numbered and has a weighted grading ranging from "\textit{High}" (essential) to "\textit{Medium}" (recommend) to "\textit{Low}" (desirable).
+After the table these requirements are discussed in more detail.
+
+\begin{longtable}{|p{0,5cm}|p{10cm}|p{3cm}|}
+	\caption{\it{CI/CD solution requirements}}
+	\label{table_cicd_requirements}\\ \hline
+	\textbf{Nr} &  \textbf{Requirement} & \textbf{Weight}  \\
+	\hline
+	\endfirsthead
+	\multicolumn{3}{l}%
+	{\tablename\ \thetable\ -- \textit{Continues...}} \\
+	\hline
+	\textbf{Nr} &  \textbf{Requirement} & \textbf{Importance}  \\
+	\hline
+	\endhead
+	\hline \multicolumn{3}{l}{\textit{Continues...}} \\
+	\endfoot
+	\hline
+	\endlastfoot
+1 & Affordability & High\\ \hline
+2 & Variety of Supported Up-to-Date Build Environments& High\\ \hline
+3 & Integrations available (e.g. Git/Docker)& High\\ \hline
+4 & Maintainability& High\\ \hline
+5 & Learning Curve& High \\ \hline
+6 & Good and Intuitive UX& Medium\\ \hline
+7 & Configuration in VCS& Medium\\ \hline
+8 & Extensive and Up-to-Date Documentation & Medium\\ \hline
+9 & Scalability and Performance & Medium\\ \hline
+10 & Public vs. Private& Medium\\ \hline
+11 & Open-Source & Low\\ \hline
+12 & Dashboards and Metric Visualizations & Low\\ \hline
+\end{longtable}
+
+\textbf{High}\\
+\textit{Requirement 1} covers pricing of the chosen CI/CD solution, which should be either free or at least affordable, especially since Certidude is an open-source project. \textit{Requirement 2} covers the CI/CD solution's ability to run and test code in up-to-date versions of a wide variety of operating systems. \textit{Requirement 3} touches on the fact that the tool needs to be able to integrate well with 3rd party solutions like version control systems, code coverage visualization tools and virtualization technologies. \textit{Requirement 4} deals with the amount of post-installation effort to keep-up a healthy state of the solution. \textit{Requirement 5} covers the fact that it shouldn't be too difficult to learn how to install, maintain and use the tool or essential components like pipeline definition languages which have to be used.
+
+\pagebreak
+
+\textbf{Medium}\\
+\textit{Requirement 6} covers that important information and features need to be easily findable as well as having clear pipeline status visualizations. It would be a good thing if the configuration file which contains the pipeline definition(s) is part of the same version control system as the code that is being tested. This is covered by \textit{Requirement 7}. \textit{Requirement 8} deals with the amount and detail of published documentation as well as publicly available ticket systems which can be essential while trying to debug technical problems. This might also be an indication of overall community support and health of the project. \textit{Requirement 9} describes that the tool needs to be fast and be able to deal with multiple parallel tasks. If resources are insufficient it should be scalable to fit demand. (\textit{Requirement 10}) covers support for both public as well as private repositories, in case Certidude will have a commercial version in the future.
+
+\textbf{Low}\\
+Less important, but still desirable traits of the CI/CD solutions would be that the tool itself is an open-source project (\textit{Requirement 11}) and having performance metrics visualizations (\textit{Requirement 12}). This last part is especially relevant for self-hosted solutions where one wants to keep an eye out for resource consumption and increase in execution times.
+
+
+\section{Overview of Tested Solutions}
+%https://instabug.com/blog/continuous-integration-tools/
+%Some points of comparison:
+%Features (without plugins) / supported Platforms
+%On Demand Builds	/ Parameterized Builds / Handling Secrets / Sandboxed Builds
+%Configs with Repository	"Automatic pipeline creation for organizations"
+%Metrics	/ Dashboard / Reusable Tasks Jobs / Status Matrix 
+%/ Good and Friendly UX / Github PR Support / Public Builds
+%
+This section describes the selected CI/CD solutions as well as how they were installed, configured and tested. If an interesting or distinguishing feature was found, it will be discussed and/or shown how it was implemented. The main test device used was a private server running \textit{Ubuntu 16.04.5 LTS (GNU/Linux 4.4.0-141-generic x86\_64)}. The pipeline definition files for on premise solutions were initially hosted on a private Gogs instance, but were moved to Gitlab once it was installed to test its embedded CI/CD solution. Additionally on premise solutions require build agents to perform defined tasks. For sake of testing purposes these were simply setup on the host machine itself.
+
+\pagebreak
+
+\subsection{Jenkins}
+\begin{wrapfigure}{r}{.3\textwidth}
+    \vspace{-50pt}
+    \includegraphics[width=.3\textwidth]{figures/brand/jenkins.jpeg}  
+    \vspace{-30pt}
+\end{wrapfigure}
+\textbf{Name}: Jenkins (associated with: \textit{Hudson} , \textit{Cloudbees})\\
+\textbf{Website}: \url{http://jenkins.io}\\
+\textbf{Documentation}: \url{https://jenkins.io/doc/}\\
+\textbf{Hosting type}: Self-Hosted
+
+Jenkins is a Java-based, on premise, open source CI/CD server published under a MIT-license and originally developed by Sun Microsystems. Originally it was known as Hudson, but this project was forked after Oracle's acquisition of Sun and the entire development community associated with the project moved over to Jenkins instead. It has a commercial version called Cloudbees. Their developers contribute to the main Jenkins codebase as well as have added some custom plugins geared towards enterprise environments.\cite{cloudbees} 
+
+Jenkins server can be easily installed through \textit{Debian} packages, RedHat \textit{RPM} packages (Red Hat Package Manager), FreeBSD's \textit{pkg} package manager or a Windows installer. OpenJDK was installed instead, a Jenkins \textit{WAR} (Web application ARchive) was downloaded and executed which started an embedded web server and the application running on top of it.\footnote{Not recommended for a permanent installation, but has no limitations that would hinder a test run.} Jenkins slaves (build agents) can be setup over ssh or registered through downloading an application through the GUI (Graphical User Interface) of the web page on the target machine.
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[frame=single, basicstyle=\small, linewidth=\textwidth]
+java -jar jenkins.war --httpPort=8081
+\end{lstlisting}
+\caption{\textit{Starting the Jenkins web server.}}
+\label{fig:jenkins-start}
+\end{figure}
+
+A special text file with the name "\textit{Jenkinsfile}" contains the pipeline definition and can be included in the repository you are creating the pipeline for. Jenkins allows for two syntax flavors: scripted and declarative.\cite{jenkins-dsl, jenkins-declarative} The former being a Groovy-based DSL, which gives access to most of Groovy's inbuilt functionality for more advanced use-cases.
+This file was created for the test application with its declarative syntax and can be seen in Appendix \hyperref[chapter:appendix-travis]{1}.
+
+\pagebreak
+
+No build agents were tagged to run specific tasks so mostly the main master build agent was used. Jenkins exposes an API through which one can trigger builds or retrieve status updates. This was used to setup a webhook between VCS and Jenkins, as well as have a nice looking build-status badge on the project's README. Jenkins can do a lot by itself, but one of it's main strengths is the amount of community support and the number of plugins available to extend its functionality. One of the main ones that was installed for this test was something called \textit{BlueOcean}. It both updated the slightly outdated GUI with a slick new look and added an intuitive point-and-click pipeline editor.
+
+
+\subsection{Gitlab}
+\begin{wrapfigure}{r}{.25\textwidth}
+    \vspace{-50pt}
+    \includegraphics[width=.25\textwidth]{figures/brand/gitlab-ci-cd-logo_2x.png}  
+    \vspace{-30pt}
+\end{wrapfigure}
+\textbf{Name}: Gitlab CI/CD \\
+\textbf{Website}: \url{https://about.gitlab.com/}\\
+\textbf{Documentation}: \url{https://docs.gitlab.com/ee/ci/}\\
+\textbf{Hosting type}: Self-Hosted and Cloud
+
+Gitlab is an open-core git repository management tool with an embedded CI/CD server and registries to manage docker images and artifacts written in Ruby and Go. One can make use of the cloud hosted version on \url{gitlab.com} that comes with build agents (\textit{runner} in their vernacular) or a self-hosted version where one can install build agents on Windows, Linux and FreeBSD machines alike. Premium features are offered as a service like SAST/DAST/Container and dependency scanning capabilities but are offered for free for open source projects if going for the cloud.
+
+The self-hosted server was installed alongside a build agent and the docker registry was configured so as to push built Docker images. Enterprise Edition (EE) was installed but only Community Edition (CE) functionality is used, which is published under an MIT license. Appendix \hyperref[chapter:appendix-gitlab]{3} shows the pipeline definition file for the test application. It is a special text file with the name "\textit{.gitlab-ci.yml}" and is written in a declarative YAML syntax. This makes the language less powerful than for example the Groovy-based engine Jenkins can use but is also easier to learn while being powerful enough to scale and implement most use-cases. It incorporates programming concepts as variables, conditional execution and inheritance.
+
+\pagebreak
+
+It has inbuilt badge creation capabilities and comes with multiple ways to report on code coverage by parsing out standard output coming from the build agent. Natively one would add a regular expression to the project's configuration page, but this can be added as a job definition as well, like the following block shows.
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[frame=single, basicstyle=\small, linewidth=\textwidth]
+test-job:
+  script: pytest --cov=example/ tests/
+  coverage: '^TOTAL\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+\%)$'
+\end{lstlisting}
+\caption{\textit{Gitlab regex-based parser for Pytest results.}}
+\label{fig:test-regex}
+\end{figure}
+
+Secrets can be defined for the project and accessed through variables in the pipeline definition. This can be done through global variables or temporary ones defined when manually running the build. Figure \ref{fig:gitlab-vars} shows these variables being used in the created pipeline for the test application when it is interacting with the configured Docker registry. See Appendix \hyperref[chapter:appendix-gitlab]{3} for the full file.
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[frame=single, basicstyle=\small, linewidth=\textwidth]
+... Building and pushing the container
+    - docker login -u $REG_UNAME -p $REG_PASSWORD $REG_TARGET 
+    - docker build -t $TEST_NAME .
+    - docker push $TEST_NAME
+    
+... Pulling and running the container
+    - docker login -u $REG_UNAME -p $REG_PASSWORD $REG_TARGET
+    - docker pull $TEST_NAME
+    - docker run -dt -p 8282:80 -v $PWD:/tmp/ --name \ 
+                               gitlabCICDContainer $TEST_NAME
+\end{lstlisting}
+\caption{\textit{Gitlab variables and Docker registry interaction.}}
+\label{fig:gitlab-vars}
+\end{figure}
+
+Gitlab CI is definitely the easy to learn, all-in-one solution where developers and administrators get more for less. No need for an additional repository management tool, wiki-solution for documentation, separate docker registry instance and CI/CD server. This is great for at least small to medium sized projects where this might save valuable and scarce resources.
+
+\pagebreak
+
+\subsection{TeamCity}
+\begin{wrapfigure}{r}{.25\textwidth}
+    \vspace{-50pt}
+    \includegraphics[width=.25\textwidth]{figures/brand/teamcity.png}  
+    \vspace{-30pt}
+\end{wrapfigure}
+\textbf{Name}: TeamCity by Jetbrains\\
+\textbf{Website}: \url{https://www.jetbrains.com/teamcity/}\\
+\textbf{Documentation}: \url{https://confluence.jetbrains.com/display/TCD18/TeamCity+Documentation}\\
+\textbf{Hosting type}: Self-Hosted
+
+TeamCity is a Java-based, commercial CI/CD server created by JetBrains which has a limited freemium version for closed source projects but free licenses can be applied for if the project is open source. 
+
+OpenJDK was installed, after which the TeamCity tarball was downloaded and unpacked. It provides a script through which to run and stop the server. It adds a build agent on the same machine as the server by default which was used to run the test builds. See also Appendix \hyperref[chapter:appendix-tc]{4} for the pipeline created for the test application which for TeamCity goes by the special filename "\textit{settings.kts}".
+
+TeamCity offers agent pools, test analysis and history on a per-test basis as well as interesting native integration options like Sysinternal's psexec, issue trackers and S3 storage for build artifacts. It offers metric visualizations like resource consumption and build times. It can integrate well with popular IDEs and version control systems which is necessary because the Kotlin-based pipeline definitions are mainly created using the GUI-based editor and this allows the instance to also write any updates to the pipeline to the project's repository.
+
+TeamCity feels like a mature tool with significant native support for .NET and Java applications by integrating with tools like Ant, Gradle, Maven and MSBuild.
+\pagebreak
+
+\subsection{Travis CI}
+\begin{wrapfigure}{r}{.25\textwidth}
+    \vspace{-50pt}
+    \includegraphics[width=.25\textwidth]{figures/brand/TravisCI-Mascot-1.png} 
+    \vspace{-30pt}
+\end{wrapfigure}
+\textbf{Name}: Travis CI\\
+\textbf{Website}: \url{https://travis-ci.org}\\
+\textbf{Documentation}: \url{https://docs.travis-ci.com/}\\
+\textbf{Hosting type}: Cloud
+
+Travis CI is a cloud based CI/CD platform written in Ruby. It has a free version for open source projects hosted on Github and an enterprise, paid version that can be deployed on premise. The latter being considered out-of-scope for this analysis. It integrates for free with tools like \textit{codecov.io} for coverage report visualizations and \textit{coverty/pyup} for static analysis scans when the project is open source.\cite{pyup}
+
+Since Travis CI is cloud based, one does not have control over build agents. Instead build environments are automatically provisioned for the user and are available in limited amounts and variety. As of this writing they support the following VMs: Windows Server 1803, macOS 10.10-14 and Ubuntu 12.04 / 14.04 and since recently also 16.04. 
+
+Connecting Travis CI to Github was an almost trivial task where one authorizes Travis CI as an OAuth application in Github and sets up webhooks back to Travis CI for those projects you choose to connect. A "\textit{.travis.yml}" file with a YAML based declarative pipeline was created and included in the repository which Travis CI automatically looks for to execute. The full pipeline for the test application can be found in Appendix \hyperref[chapter:appendix-travis]{1}. 
+
+Codecov was similarly integrated with Github, an API token was generated and included in the Travis CI project as an environmental variable (CODECOV\_TOKEN) for any triggered build. Figure \ref{fig:travis-codecov} shows part of the developed pipeline where a coverage report is generated and transparently uploaded to Codecov's web page under condition that all tests passed (i.e. return code of pytest command was 0).
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[frame=single, basicstyle=\small, linewidth=\textwidth]
+- stage: test
+  name: "Running functional tests with fixtures"
+  script:
+    ...
+    - pytest --cov-report term --cov-branch \
+                               --cov=example/ tests2
+  after_success:
+    - codecov
+\end{lstlisting}
+\caption{\textit{Travis CI and Codecov pipeline integration.}}
+\label{fig:travis-codecov}
+\end{figure}
+
+Conditional execution of stages are possible as well. Here the \textit{deploy} stage and its code is only executed when the previous build steps passed and the current branch is master.
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[frame=single, basicstyle=\small, linewidth=\textwidth]
+stages:
+  - build-run-test
+  - test
+  - name: deploy
+    if: branch = master
+\end{lstlisting}
+\caption{\textit{Travis CI and conditional pipeline execution.}}
+\label{fig:travis-conditional}
+\end{figure}
+
+\subsection{CircleCI}
+\begin{wrapfigure}{r}{.25\textwidth}
+    \vspace{-50pt}
+    \includegraphics[width=.25\textwidth]{figures/brand/circleci2.png}  
+    \vspace{-30pt}
+\end{wrapfigure}
+\textbf{Name}: CircleCI\\
+\textbf{Website}: \url{https://circleci.com}\\
+\textbf{Documentation}: \url{https://circleci.com/docs/}\\
+\textbf{Hosting type}: Self-Hosted and Cloud
+
+CircleCI is an enterprise CI/CD solution that can be either utilized in the cloud or through an on premise installation. The latter will be considered out-of-scope for this analysis. It offers 4 free hosted containers without build-time limits for open source projects although some features are still for paid users only. There is support the following execution environments: Docker, Linux VM or macOS. The pipeline file created for the test application is written in YAML and placed in the directory / path "\textit{.circleci/config.yml}" where CircleCI looks by default.
+
+One can use any publicly hosted Docker image, build one in the pipeline itself or use images provided as a service by CircleCI itself which saves time building it. They also offer something called "\textit{Docker Layer Caching}" as a paid service. This allows one to "carry over" stored layers of built Docker images to next tasks which make use of the same images and speeds up the execution of the pipeline. While ignored using it with the free, open source license it is used in the example pipeline file found in Appendix \hyperref[chapter:appendix-circleci]{5} as well.
+
+CircleCI makes use of something called "Orbs" which allow for importing and abstracting away large blocks of functionality in the pipeline. One feature that made working with CircleCI pleasant was that a code base can be pushed through a pipeline job submitted through an API request, overriding the default file located at "\textit{.circleci/config.yml}". 
+\pagebreak
+
+This is useful to test new versions of the pipeline without having to create a commit in your VCS repository and is an alternative to using a dedicated branch to do such experiments. Figure \ref{fig:circle-api} shows such a request.
+
+\textit{CIRCLE\_TOKEN} is a generated API token for CircleCI set as an environmental variable on the development machine, \textit{build\_parameters} refers to the named job that needs to be run and \textit{revision} is the commit hash of the code under test.
+
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[frame=single, basicstyle=\small, linewidth=\textwidth]
+curl --user ${CIRCLE_TOKEN}: \
+     --form config=@config.yml \
+     --form notify=false \
+     --form revision=f8e527e1c2b79f6c0c68761018dc3e3e4b08b0c0 \
+     --form build_parameters[CIRCLE_JOB]=build-fixtures \
+     --request POST "https://circleci.com/api/v1.1/project/
+               github/Korving-F/thesis-cicd-examples/tree/master"
+\end{lstlisting}
+\caption{\vspace{-3mm}\textit{CircleCI API call to trigger a build.}}
+\label{fig:circle-api}
+\end{figure}
+
+\section{Comparison of Tested Solutions}
+Table \ref{table_cicd_comparison} shows a comparison between the five tools under test and the requirements defined in Table \ref{table_cicd_requirements}. The evaluations are based on the functionality and license that came with the tools as tested. This means full functionality for Jenkins and Travis, limited functionality for Gitlab and limited amount of build agents/configurations for TeamCity and CircleCI. Some scores are based on the author's subjective opinion that formed while working with the tools and should not be interpreted as hard fact. Other low scores were given because of the tool's lack of applicability to Certidude. Comments will be given to justify some of the outliers. The scores are relative to the other tools on the same requirement and are between '++' good, '+' average and '-' bad, difficult to achieve or missing.
+
+Travis CI got a low score for the "\textit{Supported build environments}" requirement because of delays in up-to-date Linux distribution VM provisioning (support for Ubuntu 16.04 was released months before 14.04 reached end of life). 
+
+Both cloud based solutions are scored as being very maintainable since one doesn't have to be concerned with any hardware or installation of agents. Gitlab got additional points compared to the other on premise tools on this requirement because it eliminates other services that could be running on premise, like a hosted git repository.
+
+\pagebreak
+
+The learning curve for tools like Jenkins and TeamCity is deemed steeper than the other tools which is partly due to the pipeline definition languages they use. It is the author's feeling that this in turn could make them more relevant in more complex setups where there are many developers across dozens of projects with dozens of branches, each having their own pipelines defined. This is why Jenkins got more points in the scalability requirement. TeamCity's license puts limits on the amount of available build agents, so while there's potential it's less relevant to the version/license under test. 
+
+
+\begin{longtable}{|p{4.5cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|}
+	\caption{\it{CI/CD server comparison}}
+	\label{table_cicd_comparison}\\ \hline
+	\textbf{Feature / Requirement} &  \textbf{GitlabCI 11.9.2-ee 11.9.8-ee} & \textbf{TravisCI Cloud} & \textbf{CircleCI Cloud} & \textbf{Jenkins v2.150.3} & \textbf{TeamCity 2018.2.2}  \\	\hline
+	\endfirsthead
+	\multicolumn{6}{l}%
+	{\tablename\ \thetable\ -- \textit{Continues...}} \\
+	\hline
+	\textbf{Feature / Requirement} &  \textbf{GitlabCI 11.9.2-ee} & \textbf{TravisCI} & \textbf{CircleCI} & \textbf{Jenkins v2.150.3} & \textbf{TeamCity 2018.2.2}  \\
+	\hline
+	\endhead
+	\hline \multicolumn{6}{l}{\textit{Continues...}} \\
+	\endfoot
+	\hline
+	\endlastfoot
+	%High
+	\textbf{HIGH}   \\ \hline
+	Affordability 			                                & ++ & +\footnotemark & +\footnotemark[\value{footnote}] & ++ & + \footnotetext{Pricing heavily dependent on the project remaining open source}\\ \hline 
+	Supported Build Environments 	                    	& ++ & - & + & ++ & +\\ \hline
+	Integrations available                                  & + & + & + & ++ & +\\ \hline
+	Maintainability                                         & + & ++ & ++ & - & -\\ \hline
+	Learning Curve                                          & ++ & ++ & ++ & - & -\\ \hline
+	%Medium
+	\textbf{MEDIUM} 	  \\ \hline
+	Good and Intuitive UX (User Experience)                 & ++ & ++ & ++ & - & - \\ \hline
+	Configuration in VCS	                                & + & + & + & + & + \\ \hline 
+	Documentation Quality                                   & + & + & + & + & + \\ \hline
+	Scalability and Performance                            	& + & -\footnotemark & -\footnotemark[\value{footnote}] & ++ & + \footnotetext{Performance heavily dependent on availability of resources. Resource queues and outages are know to have occurred for both solutions}\\ \hline
+    Public vs. Private		                                & ++ & - & - & ++ & ++ \\ \hline
+	\textbf{LOW} 	  \\ \hline
+	Open-Source			                                	& + & - & - & ++ & -\\ \hline
+	Dashboards and Metric Visualizations               		& + & + & + & + & +\\ \hline
+\end{longtable}
+\pagebreak
+
+\section{Considerations and Conclusion}
+As one could see in Chapter \ref{chapter:concepts} there are many interesting and helpful components a CI/CD pipeline can consist of. Setting up and maintaining all these tools could get very complicated, costly and time consuming very quickly which might not seem worth the effort for a small team at first.\cite{cicd-review} Other barriers like resistance to workflow and process changes are also sometimes mentioned.\cite{comparison-cicd} It is however automating good practices which otherwise would have to be performed manually and which catch problems at an earlier stage as well. This is where an implemented CI/CD server starts to return on its initial investment quickly.\cite{comparison-cicd}
+
+Most of the tools could fulfill most of the basic needs of a small project, but when used for more advanced use cases or with larger projects suitability becomes dependent on context. \textit{What languages are being used? What resources are available to the project? Is the project open source? Is there a need of enterprise level support?} This is an evaluation that should be done on a per project basis.
+
+While according to the author Jenkins was the most capable it was also less easy to learn than its alternative which was not deemed a worthwhile trade off for a relatively small project like Certidude. For Certidude the switch from TravisCI to GitlabCI will be made. It is open source, powerful, versatile and fairly easy to learn. It has no very obvious downsides while performing good on most points. It was also deemed a good fit by the main developer and supervisor of this thesis \supervisor. Implementation will be discussed in Chapter \ref{chapter:implementation}.

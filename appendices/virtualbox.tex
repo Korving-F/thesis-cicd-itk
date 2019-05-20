@@ -1,0 +1,100 @@
+\begin{lstlisting}[frame=single, basicstyle=\tiny]
+# Download the desired OS flavor iso
+wget http://releases.ubuntu.com/16.04/ubuntu-16.04.6-server-amd64.iso
+
+# Set the VM Name
+VM='Ubuntu-1604'
+
+# Create the Virtual Disk Image file for storage
+VBoxManage createhd         --filename $VM.vdi --size 32768
+
+# Create the Ubuntu x64 VM
+VBoxManage createvm         --name $VM --ostype Ubuntu_64 --register
+
+# Create and attach the SATA controller with the previous HD
+VBoxManage storagectl       $VM --name "SATA Controller" --add sata --controller IntelAHCI
+VBoxManage storageattach    $VM --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $VM.vdi
+
+# Create IDE controller and insert the downloaded OS image
+VBoxManage storagectl       $VM --name "IDE Controller" --add ide
+VBoxManage storageattach    $VM --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive \\
+                                --medium ubuntu-16.04.6-server-amd64.iso
+    
+# Attach needed Memory to the VM
+VBoxManage modifyvm         $VM --memory 2048
+
+# Create and add 2 Network Interfaces. The first is required to be NAT by Gitlab CI.
+VBoxManage modifyvm         $VM --nic1 nat
+VBoxManage modifyvm         $VM --bridgeadapter1 vmnet1
+VBoxManage modifyvm         $VM --nic2 bridged
+
+# Start the VM either directly or in headless mode
+VBoxManage startvm $VM
+VBoxHeadless -s $VM
+
+# Setup VNC to manage the installation of the OS remotely
+VBoxManage          setproperty vrdeextpack VNC
+VBoxManage          modifyvm $VM --vrdeproperty VNCPassword=<password>
+VBoxHeadless        --vrde on -s $VM
+
+sudo apt install vncviewer
+vncviewer 0.0.0.0:3389
+vncviewer -encodings tight 0.0.0.0:3389  # Needed when encoding doesn't match
+
+# Or alternatively if VRDE is working:
+VBoxManage modifyvm $VM --vrde on
+rdesktop -a 16 -N 127.0.0.1:3389
+
+# To shutdown the VM
+VBoxManage          controlvm $VM poweroff soft
+VBoxManage          controlvm $VM acpipowerbutton
+
+# To take a snapshot of the machine (name can be included during Gitlab registration process)
+VBoxManage          snapshot $VM take example-snapshot-name
+
+
+# Gitlab Runner Installation. Needed both on the guest and host machines.
+sudo wget -O /usr/local/bin/gitlab-runner \\
+             https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64
+sudo chmod +x /usr/local/bin/gitlab-runner
+curl -sSL https://get.docker.com/ | sh
+sudo useradd --comment 'GitLab Runner' --create-home gitlab-runner --shell /bin/bash
+sudo gitlab-runner install --user=gitlab-runner --working-directory=/home/gitlab-runner
+sudo gitlab-runner start
+
+
+# The following dumped the initial self-signed pem-encoded certificate of the Gitlab CI instance.
+echo | openssl x509 -in <(openssl s_client -connect <ip/hostname>:443 -prexit 2>/dev/null) > cert.pem
+
+# Moves the certificate to list of trusted hosts. Certificates are now trusted so that API calls succeed.
+mv cert.pem /etc/gitlab-runner/certs/<ip/hostname>.crt
+
+
+# Gitlab Executor can now be setup from the host machine.
+gitlab-runner register
+Runtime platform                    arch=amd64 os=linux pid=20151 revision=3001a600 version=11.10.0
+Running in system-mode.
+                            
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/):
+https://<ip/hostname>/
+Please enter the gitlab-ci token for this runner:
+<API Token retrieved from Gitlab CI UI>
+Please enter the gitlab-ci description for this runner:
+VirtualBox Runner
+Please enter the gitlab-ci tags for this runner (comma separated):
+vbox-ubunutu16
+Registering runner... succeeded     runner=<uid>
+Please enter the executor: parallels, docker+machine, virtualbox, docker-ssh+machine, \\
+                           kubernetes, docker, docker-ssh, shell, ssh:
+virtualbox
+Please enter the VirtualBox VM (e.g. my-vm):
+Ubuntu-1604
+Please enter the SSH user (e.g. root):
+<user>
+Please enter the SSH password (e.g. docker.io):
+<password>
+Please enter path to SSH identity file (e.g. /home/user/.ssh/id_rsa):
+<path/to/identityfile>
+Runner registered successfully. Feel free to start it, but if it's running already the config \\
+                                should be automatically reloaded! 
+\end{lstlisting}
